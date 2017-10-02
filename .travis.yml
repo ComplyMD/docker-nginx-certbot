@@ -1,0 +1,46 @@
+sudo: required
+dist: trusty
+language: generic
+env:
+  global:
+  - DOCKER_VERSION=17.06.0~ce-0~ubuntu
+  - secure: PlY5NTNP/AB84RATbYvBeDShxUMBH8ol/qd4CfTMJPX09LOnEN94Cyei3/ip1hwaiOGoGxNGfKpVxnk0Kltqhkikrrej47hzQyRD9IzjsQzk25/l+0xsEYLBVH6tinWWuwI/KISnkGnritP/pX+fhsKN7yHlJ+w9Xhyxcrod1t53nx7BIbAMBYq90jPu9nIwtsDd+t+vr6zACBA8rJMbsa4jIO2CTscQ7/qPwum1vzHU/tEkOQXyM9gcZftbSjgvPHTCdkTPxashN8vWKkfuUo27AKlypP9KPU5OJX8avFofP5t0HwZ4+wDx4VpyfensBbtIfp27LEBMRBEaQ8133zi/sNGwOPZx+jbYXj/qqgAzdh6xpZZ5VGy9CJxZcrg8PwbCixYoe2E+DLPa+2gSWDuljUg9UOi9ufpHng6O4GwTTCZj6kzMGDG/OtHPQhrI21+1xyUJQgmkcnaaiOQebE68f5/q6pnLUNSMF/jEzYZIJtgTxdkfmsZeoCrbQdnZtFKgZBUzOw/3g5NDANNVvOybotLVrwk5vMH0Hb9EOw28D8WzrV8M+7gGi/sQq9LoShYaTu5Tlr6+Fd8pqE/eOt6ds8Ad5X3CW94y9DCJMNL63kI+yPXySn76m56lzbpn84eR/M7LmgC3GiWeG4SkE9Rs6MGulhQkinKDkAYyYm0=
+  - secure: mydTY0wFg0Fo225OSGXAjD9lKhY4iE6W6zmgV7EP3IFbTYj//agOxhJRresqdREK5LwhsJdbfbvEaWysYRyTReFz6jiJncIfeaxgLkbdQaoA7ODoKLASt8Rj5NTh0KUhfsKToFLalCoFRZotXj8lD0++3tgczQjfjO4fP0VHmX6iD7hOwsdb4xrEjExHZwsbKf20r1e+7a8Q2DsJj6ydG1O3gblADYbES5Gl4sdy1YEcyzvQtsgpnvBJT2TX4pA4bnCuZRZdMu28MTTaMS+PSnXnuaB8c5dmghHPvpuTj8+L46CNluagDGeYmlx5ylAnotDw5Dd8skO1F8X98+ywta1Gea/+XJKOF6adYtSiPtCYUB1cO33Ptgqa/L/FmNH+hSKdYw70PcuomrSc4pqhLRmLewOX9bjEh6C9pc0ZFyvIhHbVyW8zFio4d0RNQtnm8qk1tycQKzXZPvZ3av9a+h7VMC2QVGnF3CT2H2r0K4nCa9hKewrA5cGHPjgoCQfeivhXgvxR3K5dPE8HlZbh4lsiwIX25knxz7aShdEk2wH2JjaXwWFsctgmqHzWr/xTBKuxB0HcQv4vA3URBYYAqg3gIKp0WP/itl09QTNwfcxtMGYPoBsK64PY4SuvO/RIT/fvjFL1sx1nbbMExLLUcInBg+jFiowUXrPbl09hBJ4=
+before_install:
+- sudo apt-get update
+- apt-cache madison docker-ce
+- sudo apt-get -o Dpkg::Options::="--force-confnew" install -y --force-yes docker-ce=${DOCKER_VERSION}
+- sudo pip install awscli
+script:
+- |
+  docker build -t nginx-certbot .
+  echo $TRAVIS_PULL_REQUEST
+  echo $TRAVIS_BRANCH
+  echo $TRAVIS_PULL_REQUEST_BRANCH
+  export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH;
+    else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
+  echo $BRANCH
+  echo $TRAVIS_COMMIT
+  echo $TRAVIS_COMMIT_MESSAGE
+  $(aws ecr get-login --no-include-email --region us-east-1)
+  if [ "$TRAVIS_PULL_REQUEST" != "false" ] || [[ "$TRAVIS_COMMIT_MESSAGE" == *"[travis-tag]"* ]] || [[ -n "${TRAVIS_TAG}" ]]; then
+    docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:git-$TRAVIS_COMMIT
+    docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$BRANCH
+    if [[ -n "${TRAVIS_TAG}" ]] ; then
+      docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$TRAVIS_TAG
+      docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$TRAVIS_TAG
+    fi
+    if [[ "${BRANCH}" == "master" ]] ; then
+      docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:latest
+      docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:latest
+    fi
+    docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:git-$TRAVIS_COMMIT
+    docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$BRANCH
+  fi
+  if [[ "${BRANCH}" == "master" ]] ; then
+    docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:edge
+    docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:edge
+  fi
+notifications:
+  slack:
+    secure: i5JZN8G2VAUuIBOTcT4AQix+uqDgiISsMR5pEskoygis3zNgM5cOiTbNefG6YslChwlXsE+0NScHuE3PjOjRYvb3ha5Osb1eFVC4ZhbxXlZphXFnEqtHbtOy7kCb3/F98o8ltlMfaaozqaETIAAE4qlvS6/nOzpgBtyx/tYuXk0gTYS8fjs8dEJQjJRsC1dw+6i1ml7+Z7Y0DweCZ2TyHLJrUbWRgGl7x89UuOVpG/iBmRHXV+zShXFIRHaOcdBt7k3tyuk8k/lXT0fIy34MAhVrT1lBFCrKpjtdg8uPALMrIFmG86DvEyEl+BzWI49LAqU44T6FXYGCBfFfG1thQ5GHd7ydjBu9jepDR1RXSQOfOlbpQ0JqXohQxX3VyPgSGyfpne1oESgjHnPTpfpXqNODYUqJX+QXD/aDDedeARmekCxrJo6SNgsHqBpzk8f+W+V2d48rayRSobgIwjIoxWq3dRzklvJ3JCwgGXvwMFVSXSG26/3CVt7axJRFuImV8f2EmLvPBXd13waPuZElpFVAs5ggQeTUSaR9Lny6/w1R9K4+m0QbyrqsJB5OD11rM9+MJVA3Cf/FQWw1YNW4VcLpa+lLuw4GA177/xvEgI9d66MolHCKrRlYnSqqX1aD6IJ+Jh/N/gh86lvDaC/2EUc/uAQNS1yi/sIzxF+jdoc=
