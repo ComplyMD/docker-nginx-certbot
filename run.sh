@@ -11,9 +11,12 @@ echo "Stubbed: /etc/nginx/ssl/${baseDomain}.conf"
 
 nginx
 
+certbotStagingArg="${CERTBOT_STAGING:+"--staging"}"
+
 certbot \
   certonly \
   --webroot \
+  $certbotStagingArg \
   -w /var/www/certbot_webroot \
   -d "${DOMAINS}" \
   --agree-tos \

@@ -29,8 +29,6 @@ script:
     if [[ -n "${TRAVIS_TAG}" ]] ; then
       docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$TRAVIS_TAG
       docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:$TRAVIS_TAG
-    fi
-    if [[ "${BRANCH}" == "master" ]] ; then
       docker tag nginx-certbot 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:latest
       docker push 084991247458.dkr.ecr.us-east-1.amazonaws.com/nginx-certbot:latest
     fi
