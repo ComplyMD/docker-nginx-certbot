@@ -4,34 +4,26 @@ set -eou pipefail
 
 openssl dhparam -out /etc/nginx/ssl/dhparams.pem 2048
 
-(
-  IFS=","
-  for domain in $DOMAINS ; do
-    touch "/etc/nginx/ssl/${domain}.conf"
-    echo "Stubbed: /etc/nginx/ssl/${domain}.conf"
-  done
-)
+baseDomain=$(echo "${DOMAINS}" | cut -f1 -d",")
+
+touch "/etc/nginx/ssl/${baseDomain}.conf"
+echo "Stubbed: /etc/nginx/ssl/${baseDomain}.conf"
 
 nginx
 
-(
-  IFS=","
-  for domain in $DOMAINS ; do
-    certbot \
-      certonly \
-      --webroot \
-      -w /var/www/certbot_webroot \
-      -d "${domain}" \
-      --agree-tos \
-      --email engineering@vincari.com \
-      --noninteractive
-    echo -e "
-      ssl_certificate /etc/letsencrypt/live/${domain}/fullchain.pem;
-      ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
-    " > "/etc/nginx/ssl/${domain}.conf"
-    echo "Wrote: /etc/nginx/ssl/${domain}.conf"
-  done
-)
+certbot \
+  certonly \
+  --webroot \
+  -w /var/www/certbot_webroot \
+  -d "${DOMAINS}" \
+  --agree-tos \
+  --email engineering@vincari.com \
+  --noninteractive
+echo -e "
+  ssl_certificate /etc/letsencrypt/live/${baseDomain}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${baseDomain}/privkey.pem;
+" > "/etc/nginx/ssl/${baseDomain}.conf"
+echo "Wrote: /etc/nginx/ssl/${baseDomain}.conf"
 
 touch /var/log/certbot-renew.log
 touch /var/log/nginx/access.log
