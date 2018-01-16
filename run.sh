@@ -13,15 +13,19 @@ nginx
 
 certbotStagingArg="${CERTBOT_STAGING:+"--staging"}"
 
-certbot \
-  certonly \
-  --webroot \
-  $certbotStagingArg \
-  -w /var/www/certbot_webroot \
-  -d "${DOMAINS}" \
-  --agree-tos \
-  --email engineering@vincari.com \
-  --noninteractive
+if [ -d /etc/letsencrypt/live/lv-2035.test.lightspeedvalet.com ] ; then
+  certbot \
+    certonly \
+    --webroot \
+    $certbotStagingArg \
+    -w /var/www/certbot_webroot \
+    -d "${DOMAINS}" \
+    --agree-tos \
+    --email engineering@vincari.com \
+    --noninteractive
+else
+  certbot renew --keep-until-expiring
+fi
 echo -e "
   ssl_certificate /etc/letsencrypt/live/${baseDomain}/fullchain.pem;
   ssl_certificate_key /etc/letsencrypt/live/${baseDomain}/privkey.pem;
