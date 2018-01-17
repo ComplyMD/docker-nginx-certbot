@@ -13,7 +13,9 @@ nginx
 
 certbotStagingArg="${CERTBOT_STAGING:+"--staging"}"
 
-if [ -d /etc/letsencrypt/live/lv-2035.test.lightspeedvalet.com ] ; then
+if [ -d "/etc/letsencrypt/live/${baseDomain}" ] ; then
+  certbot renew --keep-until-expiring
+else
   certbot \
     certonly \
     --webroot \
@@ -23,8 +25,6 @@ if [ -d /etc/letsencrypt/live/lv-2035.test.lightspeedvalet.com ] ; then
     --agree-tos \
     --email engineering@vincari.com \
     --noninteractive
-else
-  certbot renew --keep-until-expiring
 fi
 echo -e "
   ssl_certificate /etc/letsencrypt/live/${baseDomain}/fullchain.pem;
