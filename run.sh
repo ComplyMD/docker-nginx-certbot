@@ -11,24 +11,37 @@ echo "Stubbed: /etc/nginx/ssl/${baseDomain}.conf"
 
 nginx
 
-certbotStagingArg="${CERTBOT_STAGING:+"--staging"}"
-
-if [ -d "/etc/letsencrypt/live/${baseDomain}" ] ; then
-  certbot renew --keep-until-expiring
-else
+CERTBOT_STAGING="${CERTBOT_STAGING:-"false"}"
+certificateDir="${LETSENCRYPT_PRODUCTION_DIR}"
+if [ $CERTBOT_STAGING = "true" ] || [ $CERTBOT_STAGING = "yes" ] ; then
+  certificateDir="${LETSENCRYPT_STAGING_DIR}"
+  echo "Creating staging certificates: ${certificateDir}"
   certbot \
     certonly \
     --webroot \
-    $certbotStagingArg \
-    -w /var/www/certbot_webroot \
-    -d "${DOMAINS}" \
+    --webroot-path /var/www/certbot_webroot \
+    --domains "${DOMAINS}" \
+    --agree-tos \
+    --email engineering@vincari.com \
+    --noninteractive \
+    --staging \
+    --config-dir "${certificateDir}"
+else
+  echo "Creating production certificates"
+  certbot \
+    certonly \
+    --webroot \
+    --webroot-path /var/www/certbot_webroot \
+    --domains "${DOMAINS}" \
+    --expand \
     --agree-tos \
     --email engineering@vincari.com \
     --noninteractive
 fi
+
 echo -e "
-  ssl_certificate /etc/letsencrypt/live/${baseDomain}/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/${baseDomain}/privkey.pem;
+  ssl_certificate ${certificateDir}/live/${baseDomain}/fullchain.pem;
+  ssl_certificate_key ${certificateDir}/live/${baseDomain}/privkey.pem;
 " > "/etc/nginx/ssl/${baseDomain}.conf"
 echo "Wrote: /etc/nginx/ssl/${baseDomain}.conf"
 
